@@ -1383,12 +1383,15 @@ def load_image_gt(dataset, config, image_id, augment=False,
     image = dataset.load_image(image_id)
     mask, class_ids = dataset.load_mask(image_id)
 
-    # [num_instance, H, W, num_kps] 
+    # [num_instance, H(512), W(512), num_kps] 
     # [num_instances]
     # [num_instance, num_kps]
     kp_mask, instance_class_ids, kp_class_ids = dataset.load_keypoint(image_id)
 
     shape = image.shape
+    # image [top_pad, left_pad, img_true, bottom_pad,
+    # right_pad] shape (MAX_DIN*MIN_DIM -> 512*512)
+
     image, window, scale, padding = utils.resize_image(
         image,
         min_dim=config.IMAGE_MIN_DIM,
@@ -1396,10 +1399,6 @@ def load_image_gt(dataset, config, image_id, augment=False,
         padding=config.IMAGE_PADDING)
     mask = utils.resize_mask(mask, scale, padding)
     
-    # fetch bbox by kp
-    # bbox: [num_instances, (y1, x1, y2, x2)]
-    info_bbox = utils.extract_bboxes_by_kps(
-            np.transpose(kp_mask,[3,1,2,0]), shape, 10)
     #todo
     #[N, H, W, kp_num]
     buff_kp_mask = np.zeros(kp_mask.shape)
@@ -1408,6 +1407,7 @@ def load_image_gt(dataset, config, image_id, augment=False,
                 [image.shape[0],image.shape[1],kp_mask.shape[3]],
                 scale, padding)
     kp_mask = buff_kp_mask
+    
 
     # Random horizontal flips.
     fliped = False
@@ -1420,26 +1420,20 @@ def load_image_gt(dataset, config, image_id, augment=False,
             for i in range(kp_mask.shape[0]):
                 kp_mask[i] = np.fliplr(kp_mask[i])
 
-    # Bounding boxes. Note that some boxes might be all zeros
-    # if the corresponding mask got cropped out.
 
+    # fetch bbox by kp
+    # bbox: [num_instances, (y1, x1, y2, x2)]
+    info_bbox = utils.extract_bboxes_by_kps(
+            np.transpose(kp_mask,[3,1,2,0]), image.shape, 10)
     
     # modify to
     # bbox: [num_instances, (y1,x1,y2,x2,class_id,num_kps)]
     bbox = np.zeros([kp_mask.shape[0], 4])
     for i in range(kp_mask.shape[0]):
-        # resize bounding boxes
         temp_bbox = info_bbox[i]
-        temp_bbox = np.asarray(temp_bbox) * scale
-        temp_bbox[list([0, 2])] = temp_bbox[list([0, 2])] + padding[0][0]
-        temp_bbox[list([1, 3])] = temp_bbox[list([1, 3])] + padding[1][0]
-        # switch positions gor the bbox points
-        # temp_bbox = np.asarray(temp_bbox[list([1, 0, 3, 2])], dtype=np.int32)
         if fliped:
             temp_bbox[list([3, 1])] = image.shape[1] - temp_bbox[list([1, 3])]
         bbox[i, :4] = temp_bbox
-        #bbox[i, 4] = instance_class_ids[i]
-        #bbox[i, 5:] = kp_class_ids[i, :]
     bbox = np.array(bbox, np.int32)
 
     # Active classes

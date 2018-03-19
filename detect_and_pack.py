@@ -23,8 +23,7 @@ InferenceConfig
 if __name__ == '__main__':
     print("Inference And Pack Use GPU 1")
 
-    CUDA_VISIBLE_DEVICES=1
-    os.environ["CUDA_VISIBLE_DEVICES"] = "1" 
+    os.environ["CUDA_VISIBLE_DEVICES"] = "0" 
 
     # Root directory of the project
     ROOT_DIR = os.getcwd()
@@ -38,7 +37,7 @@ if __name__ == '__main__':
                               model_dir=MODEL_DIR)
 
 
-    model_path = "./logs/clothes20180318T1937/mask_rcnn_clothes_0036.h5"
+    model_path = "./logs/clothes20180319T1557/mask_rcnn_clothes_0011.h5"
     # Load trained weights (fill in path to trained weights here)
     assert model_path != "", "Provide path to trained weights"
     print("Loading weights from ", model_path)
@@ -48,6 +47,6 @@ if __name__ == '__main__':
 
     results, captions = utils.detect_all_image_and_pack(model, dataset_val,
             inference_config, detect=True)
-    with open("result_all.txt", "w") as f:
+    with open("result.csv", "w") as f:
         f.write(captions +"\n")
         f.write(results + "\n")
