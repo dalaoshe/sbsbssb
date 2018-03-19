@@ -1,0 +1,11 @@
+*.jpg
+*.jpeg
+Images/
+Images2/
+Images/*
+Images2/*
+*.h5
+*.csv
+__pycache__/
+__pycache__/*
+
