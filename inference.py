@@ -15,13 +15,9 @@ import model as modellib
 import visualize
 from model import log
 
-from test_train import ClothesConfig, ClothesDataset, prepare_dataset
+from test_train import ClothesConfig, ClothesDataset, prepare_dataset,\
+        InferenceConfig
 
-
-
-class InferenceConfig(ClothesConfig):
-    GPU_COUNT = 1
-    IMAGES_PER_GPU = 1
 if __name__ == '__main__':
 
 

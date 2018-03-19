@@ -1,15 +1,7 @@
 #-*- coding:utf-8 -*-
 import os
 import sys
-import random
-import math
-import re
-import time
 import numpy as np
-import cv2
-import matplotlib
-import matplotlib.pyplot as plt
-
 from config import Config
 import utils
 import model as modellib
@@ -93,44 +85,57 @@ class ClothesDataset(utils.Dataset):
                 for image_info in f.readlines():
                     items = image_info.replace("\n","").split(",")
                     path, image_type = items[:2]
+                    # 只取指定衣服种类的数据
                     if not(image_type in class_type):
                         continue
 
                     kps = items[2:]
                     image_name = path.split("/")[-1]
 
+                    # 从第min_id个数据开始取最多取count条
                     if image_id < min_id:
                         image_id = image_id + 1
                         continue
+
                     self.add_image("clothes", 
                             image_id=image_id-min_id, path=path, 
                             image_type=image_type, image_name=image_name,
                             height=height, width=width,
                             kps=kps)
                     image_id = image_id + 1
-                    if image_id >= count:
+
+                    # 最多取count条数据
+                    if (image_id-min_id+1) >= count:
                         break
             elif mode=="inference":
                 for image_info in f.readlines():
                     items = image_info.replace("\n","").split(",")
                     path, image_type = items[:2]
+                    # 只取指定衣服种类的数据
                     if not(image_type in class_type):
                         continue
-
+                    
+                    # 测试集数据在Imagetest/下
                     path_i = path.split("/")
                     path_i[0] = path_i[0]+"test"
                     path = "/".join(path_i)
 
                     image_name = path.split("/")[-1]
+
+                    
+                    # 从第min_id个数据开始取最多取count条
                     if image_id < min_id:
                         image_id = image_id + 1
                         continue
+                    
                     self.add_image("clothes", 
                             image_id=image_id-min_id, path=path, 
                             image_type=image_type, image_name=image_name,
                             height=height, width=width)
                     image_id = image_id + 1
-                    if image_id >= count:
+
+                    # 最多取count条数据
+                    if (image_id-min_id+1) >= count:
                         break
 
 
@@ -150,12 +155,13 @@ class ClothesDataset(utils.Dataset):
     def load_keypoint(self, image_id):
         """Generate instance masks for shapes of the given image ID.
         kp_mask: [num_instance, H, W, num_kps]
-        instance_class_ids: [num_instance]
+        instance_class_ids: [num_instance], 每种实例的类型，均设置为1
         kp_class_ids: [num_instance, num_kps]
+        该数据集每张图只有1个实例，强行设置num_instance为1
+        该数据集共有24种特征，num_kps为24
         """
         info = self.image_info[image_id]
         kps = info['kps']
-        #print(info)
         instance_count = 1
         kps_count = len(kps)
         assert(kps_count == 24 and instance_count == 1)
@@ -164,7 +170,7 @@ class ClothesDataset(utils.Dataset):
             kps_count], dtype=np.uint8)
         kp_class_ids = np.zeros([instance_count, kps_count])
         instance_class_ids = []
-        #print("load img:", image_id)
+
         for i in range(instance_count):
             for j, kp in enumerate(kps):
                 x,y,t = np.array(kp.split("_"), dtype=np.int32)
@@ -184,11 +190,11 @@ class ClothesDataset(utils.Dataset):
 
 
 
-def prepare_dataset(min_id=0, max_id=2500, anotation="./train.csv",
+def prepare_dataset(min_id=0, count=2500, anotation="./train.csv",
         mode="training",\
         class_type=["blouse","dress","outwear","skirt","trousers"]):
     dataset = ClothesDataset()
-    dataset.prepare_data(min_id,max_id, anotation, 512, 512, mode, class_type)
+    dataset.prepare_data(min_id,count, anotation, 512, 512, mode, class_type)
     dataset.prepare()
     return dataset
 
@@ -197,15 +203,14 @@ if __name__ == "__main__":
     dataset_train = prepare_dataset(0, 28000)#, "./annotations.csv")
     dataset_val = prepare_dataset(28001, 31640)#, "./annotations.csv")
 
-    CUDA_VISIBLE_DEVICES=0
-    os.environ["CUDA_VISIBLE_DEVICES"] = "0" 
+    os.environ["CUDA_VISIBLE_DEVICES"] = "1" 
 
     ROOT_DIR = os.getcwd()
     # Directory to save logs and trained model
     MODEL_DIR = os.path.join(ROOT_DIR, "logs")
     # Local path to trained weights file
     COCO_MODEL_PATH = \
-    os.path.join(ROOT_DIR,"logs/clothes20180318T1937/mask_rcnn_clothes_0036.h5")
+    os.path.join(ROOT_DIR,"logs/clothes20180319T1557/mask_rcnn_clothes_0001.h5")
     # Download COCO trained weights from Releases if needed
     if not os.path.exists(COCO_MODEL_PATH):
         utils.download_trained_weights(COCO_MODEL_PATH)
@@ -219,7 +224,10 @@ if __name__ == "__main__":
     # Create model in training mode
     model = modellib.MaskRCNN(mode="training", config=config,
                               model_dir=MODEL_DIR)
-    
+   
+    print("Data Train Size:", len(dataset_train.image_ids))
+    print("Data Val Size:", len(dataset_val.image_ids))
+
     
     model.load_weights(COCO_MODEL_PATH, by_name=True,\
                     exclude=["mrcnn_class_logits", "mrcnn_bbox_fc", 
