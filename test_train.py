@@ -47,10 +47,10 @@ class ClothesConfig(Config):
 
     
     # Solver Config
-    STEPS_PER_EPOCH = 2000
+    STEPS_PER_EPOCH = 1000
     VALIDATION_STEPS = 200
     
-    LEARNING_RATE = 0.01
+    LEARNING_RATE = 0.02
     LEARNING_MOMENTUM = 0.9
     WEIGHT_DECAY = 0.0001
     

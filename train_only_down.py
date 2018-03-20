@@ -30,7 +30,7 @@ if __name__ == "__main__":
         os.mkdir(MODEL_DIR)
     # Local path to trained weights file
     COCO_MODEL_PATH = \
-    os.path.join(ROOT_DIR,"logs/seperate/skirt_trousers/clothes20180320T1222/mask_rcnn_clothes_0003.h5")
+    os.path.join(ROOT_DIR,"logs/seperate/skirt_trousers/clothes20180320T1222/mask_rcnn_clothes_0005.h5")
     # Download COCO trained weights from Releases if needed
     if not os.path.exists(COCO_MODEL_PATH):
         utils.download_trained_weights(COCO_MODEL_PATH)

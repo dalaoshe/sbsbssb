@@ -135,11 +135,25 @@ def change_data_file(datafile,out):
 
 
 
+def merge(f1,f2,outf):
+    res = []
+    with open(f1, "r") as f:
+        for i in f.readlines():
+            item = i.replace("\n","")
+            res.append(item)
+    with open(f2, "r") as f:
+        for i in f.readlines():
+            item = i.replace("\n","")
+            res.append(item)
+    with open(outf, "w") as f:
+        res = "\n".join(res)
+        f.write(res+"\n")
 
 
 
 if __name__ == '__main__':
 #    change_data_file("result_pred.csv", "result.csv")
+#     merge("r1.csv","r2.csv","result.csv")
     true_datas = read_data("result_true.csv")
     pred_datas = read_data("result.csv")
     print(len(true_datas), len(pred_datas))
