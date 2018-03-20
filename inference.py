@@ -13,6 +13,7 @@ from config import Config
 import utils
 import model as modellib
 import visualize
+import skimage
 from model import log
 
 from test_train import ClothesConfig, ClothesDataset, prepare_dataset,\
@@ -69,7 +70,17 @@ if __name__ == '__main__':
     visualize.display_kp(image, restore_bbox, restore_kp_mask, gt_class_id, 
                                 dataset_train.kp_enames, 
                                 gt_kp_class_ids,
-                                figsize=(8, 8))
+                                figsize=(8, 8)) 
+
+    img_info = dataset_train.image_info[image_id]
+    out_img = os.path.join(IMG_OUT_DIR, img_info['image_type'])
+    out_img = os.path.join(out_img, image_name)
+    visualize.display_kp_and_save(image, restore_bbox, restore_kp_mask, gt_class_id, 
+                                dataset_train.kp_enames, 
+                                gt_kp_class_ids,
+                                out_img=out_img,
+                                figsize=(8, 8)) 
+            
 
 
     model_path = "./logs/clothes20180318T1937/mask_rcnn_clothes_0036.h5"

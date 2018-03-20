@@ -614,8 +614,7 @@ def detection_targets_graph(proposals, gt_class_ids, gt_boxes, gt_masks,
     deltas = tf.pad(deltas, [(0, N + P), (0, 0)])
     masks = tf.pad(masks, [[0, N + P], (0, 0), (0, 0)])
     kp_masks = tf.pad(kp_masks, [[0, N + P], (0, 0), (0, 0), (0,0)])
-    #print("after padding")
-    #print(kp_masks)
+
     return rois, roi_gt_class_ids, deltas, masks, kp_masks, roi_gt_kp_class_ids
 
 
@@ -727,8 +726,9 @@ def refine_detections_graph(rois, probs, deltas, window, config):
     class_ids = tf.argmax(probs, axis=1, output_type=tf.int32)
     # Class probability of the top class of each ROI
     indices = tf.stack([tf.range(probs.shape[0]), class_ids], axis=1)
+    # probs per ROI In Max prob class
     class_scores = tf.gather_nd(probs, indices)
-    # Class-specific bounding box deltas
+    # deltas per ROI in Max prob class
     deltas_specific = tf.gather_nd(deltas, indices)
     # Apply bounding box deltas
     # Shape: [boxes, (y1, x1, y2, x2)] in normalized coordinates
@@ -1087,11 +1087,6 @@ def build_fpn_kp_mask_graph(rois, feature_maps,
     x = KL.TimeDistributed(KL.Conv2D(num_kps, (1, 1), strides=1, activation="sigmoid"),
                            name="mrcnn_kp_mask")(x)
 
-#    x_shape = K.int_shape(x)
- #   x = K.reshape(x, (-1,x_shape[1], x_shape[2],x_shape[3], num_classes,
-  #      num_kps))
-#    x = KL.TimeDistributed(KL.Activation("softmax"),
-#                           name="mrcnn_kp_mask_softmax")(x)
     return x
 ############################################################
 #  Loss Functions
@@ -2168,6 +2163,7 @@ class MaskRCNN():
             # Subsamples proposals and generates target outputs for training
             # Note that proposal class IDs, gt_boxes, and gt_masks are zero
             # padded. Equally, returned rois and targets are zero padded.
+            # rosi whose class IDs > 0, iou is conditional
             rois, target_class_ids, target_bbox, target_mask, target_kp_mask, \
             target_kp_ids =\
                 DetectionTargetLayer(config, name="proposal_targets")([
@@ -2257,24 +2253,26 @@ class MaskRCNN():
                 lambda x: x[..., :4] / np.array([h, w, h, w]))(detections)
 
             # Create masks for detections
-            mrcnn_mask = build_fpn_mask_graph(detection_boxes, mrcnn_feature_maps,
-                                              config.IMAGE_SHAPE,
-                                              config.MASK_POOL_SIZE,
-                                              config.NUM_CLASSES)
+            #mrcnn_mask = build_fpn_mask_graph(detection_boxes, mrcnn_feature_maps,
+            #                                  config.IMAGE_SHAPE,
+            #                                  config.MASK_POOL_SIZE,
+            #                                  config.NUM_CLASSES)
             
             mrcnn_kp_mask = build_fpn_kp_mask_graph(detection_boxes, mrcnn_feature_maps,
                                               config.IMAGE_SHAPE,
-                                              config.MASK_POOL_SIZE,
+                                              config.KP_MASK_POOL_SIZE,
                                               config.NUM_CLASSES,
                                               config.NUM_KPS)
 
             model = KM.Model([input_image, input_image_meta],
                              [detections, mrcnn_class, mrcnn_bbox,
                                  mrcnn_kp_mask,
-                                 mrcnn_mask, rpn_rois, rpn_class, rpn_bbox,
+                                 #mrcnn_mask, 
+                                 rpn_rois, rpn_class, rpn_bbox,
                                  mrcnn_kp_class_ids],
                              name='mask_rcnn')
 
+        model.summary()
         # Add multi-GPU support.
         if config.GPU_COUNT > 1:
             from parallel_model import ParallelModel
@@ -2776,7 +2774,8 @@ class MaskRCNN():
             #print(windows)
             pass
         # Run object detection
-        detections, mrcnn_class, mrcnn_bbox,mrcnn_kp_mask, mrcnn_mask, \
+        detections, mrcnn_class, mrcnn_bbox,\
+            mrcnn_kp_mask, \
             rois, rpn_class, rpn_bbox, mrcnn_kp_class_ids =\
             self.keras_model.predict([molded_images, image_metas], verbose=0)
         # Process detections
@@ -2789,7 +2788,12 @@ class MaskRCNN():
                         mrcnn_kp_mask[i],
                         mrcnn_kp_class_ids[i],
                         image.shape, windows[i],
-                        self.config.NUM_CLASSES, self.config.NUM_KPS)
+                        self.config.NUM_CLASSES, 
+                        self.config.NUM_KPS)
+            if not np.any(final_kp_masks):
+                print("Error Img:")
+                print("rois:",rois[i])
+                print("detection:",detections[i])
             results.append({
                 "rois": final_rois,
                 "class_ids": final_class_ids,

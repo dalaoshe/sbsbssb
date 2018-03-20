@@ -14,7 +14,7 @@ import utils
 import model as modellib
 import visualize
 from model import log
-
+import shutil  
 from test_train import ClothesConfig, ClothesDataset, prepare_dataset,\
         InferenceConfig
 
@@ -42,27 +42,35 @@ if __name__ == '__main__':
                               model_dir=MODEL_DIR)
 
 
-    model_path = \
-    "./logs/seperate/blouse_dress_outwear/clothes20180320T1211/mask_rcnn_clothes_0001.h5"
+    model_path = "./logs/clothes20180320T0100/mask_rcnn_clothes_0008.h5"
     assert model_path != "", "Provide path to trained weights"
     print("Loading weights from ", model_path)
     model.load_weights(model_path, by_name=True)
     
     
-    class_type = ["blouse","dress","outwear"]
-    dataset_val = prepare_dataset(0, 10000,"./test.csv","inference",\
-            class_type=class_type)
+    dataset_val = prepare_dataset(0, 10000,"./test.csv","inference")
+    
+    IMG_OUT_DIR = os.path.join(os.getcwd(),"out_imgs")
+    if not os.path.exists(IMG_OUT_DIR): os.mkdir(IMG_OUT_DIR)
+    else: 
+        shutil.rmtree(IMG_OUT_DIR)
+        os.mkdir(IMG_OUT_DIR)
+    for i in range(1,len(dataset_val.class_info)):
+        class_name = dataset_val.class_info[i]['name']
+        class_dir = os.path.join(IMG_OUT_DIR, class_name)
+        if not os.path.exists(class_dir): os.mkdir(class_dir)
 
 
-    nums = 2
-    image_ids = np.random.choice(dataset_val.image_ids, nums)
+    nums = len(dataset_val.image_ids)
+    #image_ids = np.random.choice(dataset_val.image_ids, nums)
+    image_ids = dataset_val.image_ids
     print("image_ids:", image_ids)
 
     for i in range(nums):
         image_id = image_ids[i]
         image_type = dataset_val.get_image_type(image_id)
         image_name = dataset_val.get_image_name(image_id)
-        print("Img Info:",image_name,image_type,image_id)
+        #print("Img Info:",image_name,image_type,image_id)
         image = dataset_val.load_image(image_id)
 
         original_image, window, scale, padding = utils.resize_image(
@@ -72,6 +80,10 @@ if __name__ == '__main__':
             padding=inference_config.IMAGE_PADDING)
         results = model.detect([original_image], verbose=1)
         r = results[0]
+
+        if not np.any(r['kpmasks']):
+            print("Img Error:",image_id, " Name:",image_type, image_name)
+            continue
 
         restore_kp_mask = []
         restore_bbox = []
@@ -86,14 +98,19 @@ if __name__ == '__main__':
         restore_kp_mask = np.array(restore_kp_mask)
         restore_bbox = np.array(restore_bbox)
         
-        if not np.any(r['kpmasks']):
-            print("Img Error:",image_id, " Name:",image_type, image_name)
-            continue
-        visualize.display_kp(image, restore_bbox, restore_kp_mask, 
-                                r['kp_class_ids'][:1], 
-                                dataset_val.kp_enames, 
-                                r['kp_class_ids'][:1],
-                                r['scores'])
+
+        img_info = dataset_val.image_info[image_id]
+        out_img = os.path.join(IMG_OUT_DIR, img_info['image_type'])
+        out_img = os.path.join(out_img, image_name)
+        visualize.display_kp_and_save(image, restore_bbox, restore_kp_mask,
+                                    r['kp_class_ids'][:1],
+                                    dataset_val.kp_enames, 
+                                    r['kp_class_ids'][:1],
+                                    r['scores'],
+                                    out_img=out_img,
+                                    figsize=(8, 8)) 
+        if i % 100 == 0 :
+            print("=======FINISH:",float(i)/float(nums)," ==========")
 
 
 

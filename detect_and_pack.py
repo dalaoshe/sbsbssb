@@ -37,13 +37,14 @@ if __name__ == '__main__':
                               model_dir=MODEL_DIR)
 
 
-    model_path = "./logs/clothes20180319T1557/mask_rcnn_clothes_0029.h5"
+    #model_path = "./logs/clothes20180319T1557/mask_rcnn_clothes_0029.h5"
+    model_path = "./logs/clothes20180320T0100/mask_rcnn_clothes_0009.h5"
     # Load trained weights (fill in path to trained weights here)
     assert model_path != "", "Provide path to trained weights"
     print("Loading weights from ", model_path)
     model.load_weights(model_path, by_name=True)
 
-    dataset_val = prepare_dataset(0, 10000,"./test.csv","inference")
+    dataset_val = prepare_dataset(150, 400,"./test.csv","inference")
 
     results, captions = utils.detect_all_image_and_pack(model, dataset_val,
             inference_config, detect=True)

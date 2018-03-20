@@ -19,39 +19,47 @@ class ClothesConfig(Config):
     """
     # Give the configuration a recognizable name
     NAME = "clothes"
-
-    # Train on 1 GPU and 8 images per GPU. We can put multiple images on each
+    
+    # Computer Config
     # GPU because the images are small. Batch size is  (GPUs * images/GPU).
     GPU_COUNT = 1
     IMAGES_PER_GPU = 8
-
+    
     # Number of classes (including background)
-    NUM_CLASSES = 1+5   # background + 3 shapes
+    NUM_CLASSES = 1+1   # background + 1 shapes
     NUM_KPS =  24
-    # Use small images for faster training. Set the limits of the small side
-    # the large side, and that determines the image shape.
+
+    # Model Config
     IMAGE_MIN_DIM = 512
     IMAGE_MAX_DIM = 512
+    RPN_ANCHOR_SCALES = (16, 32, 64, 128, 256)
+    #RPN_ANCHOR_SCALES = (32, 64, 128, 256, 512)
+
+    # Train Config
+    USE_MINI_MASK = True
     MINI_MASK_SHAPE = (56, 56)  # (height, width) of the mini-mask
     KP_MASK_POOL_SIZE = 28
     KP_MASK_SHAPE = [56, 56]
-    MAX_GT_INSTANCES = 32
 
-
-    # Reduce training ROIs per image because the images are small and have
-    # few objects. Aim to allow ROI sampling to pick 33% positive ROIs.
+    MAX_GT_INSTANCES = 12
     TRAIN_ROIS_PER_IMAGE = 24
+    
 
-    # Use a small epoch since the data is simple
+    
+    # Solver Config
     STEPS_PER_EPOCH = 2000
-
-    # use small validation steps since the epoch is small
     VALIDATION_STEPS = 200
+    
+    LEARNING_RATE = 0.01
+    LEARNING_MOMENTUM = 0.9
+    WEIGHT_DECAY = 0.0001
+    
     
 
 
 class InferenceConfig(ClothesConfig):
-    DETECTION_MAX_INSTANCES = 2
+    # Detection Config
+    DETECTION_MAX_INSTANCES = 5
     GPU_COUNT = 1
     IMAGES_PER_GPU = 1
 
@@ -83,12 +91,12 @@ class ClothesDataset(utils.Dataset):
                 for image_info in f.readlines():
                     items = image_info.replace("\n","").split(",")
                     path, image_type = items[:2]
+                    image_name = path
                     # 只取指定衣服种类的数据
                     if not(image_type in class_type):
                         continue
 
                     kps = items[2:]
-                    image_name = path.split("/")[-1]
 
                     # 从第min_id个数据开始取最多取count条
                     if image_id < min_id:
@@ -109,6 +117,7 @@ class ClothesDataset(utils.Dataset):
                 for image_info in f.readlines():
                     items = image_info.replace("\n","").split(",")
                     path, image_type = items[:2]
+                    image_name = path
                     # 只取指定衣服种类的数据
                     if not(image_type in class_type):
                         continue
@@ -118,7 +127,6 @@ class ClothesDataset(utils.Dataset):
                     path_i[0] = path_i[0]+"test"
                     path = "/".join(path_i)
 
-                    image_name = path.split("/")[-1]
 
                     
                     # 从第min_id个数据开始取最多取count条
@@ -226,10 +234,14 @@ if __name__ == "__main__":
     print("Data Train Size:", len(dataset_train.image_ids))
     print("Data Val Size:", len(dataset_val.image_ids))
 
-    
-    model.load_weights(COCO_MODEL_PATH, by_name=True,\
+    init_with = False
+    if init_with == True: 
+        model.load_weights(COCO_MODEL_PATH, by_name=True,\
                     exclude=["mrcnn_class_logits", "mrcnn_bbox_fc", 
                     "mrcnn_bbox", "mrcnn_mask"])
+    else:
+        model.load_weights(COCO_MODEL_PATH, by_name=True)
+
     
     model.train(dataset_train, dataset_val, 
                 learning_rate=config.LEARNING_RATE , 

@@ -59,7 +59,6 @@ def random_colors(N, bright=True):
     hsv = [(i / N, 1, brightness) for i in range(N)]
     colors = list(map(lambda c: colorsys.hsv_to_rgb(*c), hsv))
     random.shuffle(colors)
-    print("color shape", colors)
     return colors
 
 
@@ -78,15 +77,15 @@ def apply_kp_mask(image, mask, color,kp_class_ids, kp_class_names,
     """Apply the given mask to the image.
     """
 
-    print("kp_class_ids",kp_class_ids.shape)
+    #print("kp_class_ids",kp_class_ids.shape)
     for i in range(mask.shape[0]):
         if(len(kp_class_ids.shape) > 1):
-            print("kp:",i," kp_i_type:", np.argmax(kp_class_ids[i]))
+            #print("kp:",i," kp_i_type:", np.argmax(kp_class_ids[i]))
             kp_t = np.argmax(kp_class_ids[i])
             if kp_t < mode: continue
         ix = np.where(mask[i] == 1)
         if len(ix[0]) <= 0: continue
-        print("center:",i, ix[1], ix[0], kp_class_names[i])
+        #print("center:",i, ix[1], ix[0], kp_class_names[i])
         caption = "{}".format(kp_class_names[i])
         ax.text(ix[1]-10, ix[0]-10, caption, color="r", size=10,
                 backgroundcolor="none")
@@ -219,14 +218,6 @@ def display_kp(image, boxes, masks, class_ids, kp_class_names,
                               edgecolor=color, facecolor='none')
         ax.add_patch(p)
 
-        # Label
-       # class_id = class_ids[i]
-       # score = scores[i] if scores is not None else None
-       # label = class_names[class_id]
-       # x = random.randint(x1, (x1 + x2) // 2)
-       # caption = "{} {:.3f}".format(label, score) if score else label
-       # ax.text(x1, y1 + 8, caption,
-       #         color='w', size=11, backgroundcolor="none")
 
         # Mask
         mask = masks[i,:, :, :]
@@ -235,19 +226,70 @@ def display_kp(image, boxes, masks, class_ids, kp_class_names,
         masked_image = apply_kp_mask(masked_image, mask, (1.0,1.0,1.0),
                 kp_class_ids[i], kp_class_names, ax, mode=mode)
 
-        # Mask Polygon
-        # Pad to ensure proper polygons for masks that touch image edges.
-        #padded_mask = np.zeros(
-        #    (mask.shape[0] + 2, mask.shape[1] + 2), dtype=np.uint8)
-        #padded_mask[1:-1, 1:-1] = mask
-        #contours = find_contours(padded_mask, 0.5)
-        #for verts in contours:
-        #    # Subtract the padding and flip (y, x) to (x, y)
-        #    verts = np.fliplr(verts) - 1
-        #    p = Polygon(verts, facecolor="none", edgecolor=color)
-        #    ax.add_patch(p)
     ax.imshow(masked_image.astype(np.uint8))
+    
     plt.show()
+    return _
+
+def display_kp_and_save(image, boxes, masks, class_ids, kp_class_names,
+                      kp_class_ids,
+                      scores=None, title="",
+                      figsize=(16, 16), ax=None,mode=2,
+                      out_img="test.jpg"):
+    """
+    boxes: [num_instance, (y1, x1, y2, x2, class_id)] in image coordinates.
+    masks: [num_instance, height, width, num_kps]
+    class_ids: [num_instances]
+    class_names: list of class names of the dataset
+    kp_class_ids: [num_instance, num_kps, 3]
+    scores: (optional) confidence scores for each box
+    figsize: (optional) the size of the image.
+    """
+    # Number of instances
+    N = boxes.shape[0]
+    if not N:
+        print("\n*** No instances to display *** \n")
+    else:
+        print(boxes.shape[0], masks.shape[0], kp_class_ids.shape[0])
+        assert boxes.shape[0] == masks.shape[0] == class_ids.shape[0]
+
+    if not ax:
+        _, ax = plt.subplots(1, figsize=figsize)
+
+    # Generate random colors
+    colors = random_colors(N)
+
+    # Show area outside image boundaries.
+    height, width = image.shape[:2]
+    ax.set_ylim(height + 10, -10)
+    ax.set_xlim(-10, width + 10)
+    ax.axis('off')
+    ax.set_title(title)
+
+    masked_image = image.astype(np.uint32).copy()
+    for i in range(N):
+        color = colors[i]
+        # Bounding box
+        if not np.any(boxes[i]):
+            # Skip this instance. Has no bbox. Likely lost in image cropping.
+            continue
+        y1, x1, y2, x2 = boxes[i]
+        p = patches.Rectangle((x1, y1), x2 - x1, y2 - y1, linewidth=2,
+                              alpha=0.7, linestyle="dashed",
+                              edgecolor=color, facecolor='none')
+        ax.add_patch(p)
+
+
+        # Mask
+        mask = masks[i,:, :, :]
+        mask = np.transpose(mask,[2,0,1])
+
+        masked_image = apply_kp_mask(masked_image, mask, (1.0,1.0,1.0),
+                kp_class_ids[i], kp_class_names, ax, mode=mode)
+
+    ax.imshow(masked_image.astype(np.uint8))
+    _.savefig(out_img)
+    return _
 
 def display_only_kp(image, masks, titles=None, cols=4, cmap=None,
                     norm=None, interpolation=None):
