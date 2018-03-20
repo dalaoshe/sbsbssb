@@ -896,7 +896,7 @@ def pack_detect_kp_result(kp_masks, kp_class_ids, kp_class_names):
     if np.any(kp_masks):
         kp_mask = np.transpose(kp_masks[0],[2,0,1])
         kp_class_id = kp_class_ids[0]
-        for i in range(1):
+        for i in range(kp_mask.shape[0]):
             ix = np.where(kp_mask[i] == 1) 
             if len(kp_class_id.shape) > 1:
                 kp_t = np.argmax(kp_class_id[i])
