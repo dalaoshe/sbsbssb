@@ -1123,7 +1123,10 @@ def rpn_class_loss_graph(rpn_match, rpn_class_logits):
     loss = K.sparse_categorical_crossentropy(target=anchor_class,
                                              output=rpn_class_logits,
                                              from_logits=True)
-    loss = K.switch(tf.size(loss) > 0, K.mean(loss), tf.constant(0.0))
+    loss = K.switch(tf.size(loss) > 0, 
+            lambda:K.mean(loss), 
+            lambda:tf.constant(0.0)
+            )
     return loss
 
 
@@ -1156,7 +1159,9 @@ def rpn_bbox_loss_graph(config, target_bbox, rpn_match, rpn_bbox):
     less_than_one = K.cast(K.less(diff, 1.0), "float32")
     loss = (less_than_one * 0.5 * diff**2) + (1 - less_than_one) * (diff - 0.5)
 
-    loss = K.switch(tf.size(loss) > 0, K.mean(loss), tf.constant(0.0))
+    loss = K.switch(tf.size(loss) > 0, 
+            lambda:K.mean(loss), 
+            lambda:tf.constant(0.0))
     return loss
 
 
@@ -1334,12 +1339,13 @@ def mrcnn_kp_mask_loss_graph(target_kp_masks, target_class_ids, pred_kp_masks,
 
     # Compute binary cross entropy. If no positive ROIs, then return 0.
     # shape: [batch, roi, num_classes]
-    loss = K.switch(tf.size(pred_kp_masks) > 0,
-                    K.switch(tf.size(target_kp_masks) > 0,
-                    tf.nn.softmax_cross_entropy_with_logits(
-                        logits=pred_kp_masks, labels=target_kp_masks, dim=1),
-                    tf.constant(0.0)),
-                    tf.constant(0.0))
+    loss = K.switch( tf.size(target_kp_masks) > 0,
+                    lambda:
+                        tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(
+                        logits=pred_kp_masks, labels=target_kp_masks, dim=1)
+                        )
+                        ,
+                    lambda:tf.constant(0.0))
 
     loss = K.switch(tf.size(loss)>0,
                     K.mean(loss),
@@ -2365,8 +2371,13 @@ class MaskRCNN():
         """
         # Optimizer object
         optimizer = keras.optimizers.SGD(lr=learning_rate, momentum=momentum,
-                                         clipnorm=5.0)
-        #optimizer = keras.optimizers.Adagrad(lr=learning_rate)
+                                        decay=self.config.WEIGHT_DECAY,
+                                        #epsilon=1e-06,
+                                         clipvalue=2.0)
+        #optimizer = keras.optimizers.Adagrad(lr=learning_rate,
+        #        decay=self.config.WEIGHT_DECAY,
+        #        clipvalue=2.0,
+        #        epsilon=1e-06)
         # Add Losses
         # First, clear previously set losses to avoid duplication
         self.keras_model._losses = []

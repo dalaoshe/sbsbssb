@@ -28,7 +28,7 @@ if __name__ == '__main__':
 
     print("Inference And Visual")
 
-    os.environ["CUDA_VISIBLE_DEVICES"] = "0" 
+    os.environ["CUDA_VISIBLE_DEVICES"] = "2" 
     # Root directory of the project
     ROOT_DIR = os.getcwd()
     # Directory to save logs and trained model
@@ -42,13 +42,17 @@ if __name__ == '__main__':
                               model_dir=MODEL_DIR)
 
 
-    model_path = "./logs/clothes20180320T0100/mask_rcnn_clothes_0008.h5"
+    model_path = \
+    "./logs/seperate/blouse_dress_outwear/clothes20180320T1211/mask_rcnn_clothes_0013.h5"
     assert model_path != "", "Provide path to trained weights"
     print("Loading weights from ", model_path)
     model.load_weights(model_path, by_name=True)
     
     
-    dataset_val = prepare_dataset(0, 10000,"./test.csv","inference")
+    class_type = ["blouse","dress","outwear"]
+    #class_type = ["skirt","trousers"]
+    dataset_val = prepare_dataset(0, 10000,"./test.csv","inference",\
+            class_type=class_type)
     
     IMG_OUT_DIR = os.path.join(os.getcwd(),"out_imgs")
     if not os.path.exists(IMG_OUT_DIR): os.mkdir(IMG_OUT_DIR)
@@ -101,7 +105,7 @@ if __name__ == '__main__':
 
         img_info = dataset_val.image_info[image_id]
         out_img = os.path.join(IMG_OUT_DIR, img_info['image_type'])
-        out_img = os.path.join(out_img, image_name)
+        out_img = os.path.join(out_img, image_name.split("/")[-1])
         visualize.display_kp_and_save(image, restore_bbox, restore_kp_mask,
                                     r['kp_class_ids'][:1],
                                     dataset_val.kp_enames, 

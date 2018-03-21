@@ -250,7 +250,7 @@ def display_kp_and_save(image, boxes, masks, class_ids, kp_class_names,
     if not N:
         print("\n*** No instances to display *** \n")
     else:
-        print(boxes.shape[0], masks.shape[0], kp_class_ids.shape[0])
+        #print("not equal", boxes.shape[0], masks.shape[0], kp_class_ids.shape[0])
         assert boxes.shape[0] == masks.shape[0] == class_ids.shape[0]
 
     if not ax:

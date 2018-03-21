@@ -28,7 +28,7 @@ if __name__ == '__main__':
 
     print("Inference And Visual")
 
-    os.environ["CUDA_VISIBLE_DEVICES"] = "0" 
+    os.environ["CUDA_VISIBLE_DEVICES"] = "2" 
     # Root directory of the project
     ROOT_DIR = os.getcwd()
     # Directory to save logs and trained model
@@ -42,14 +42,17 @@ if __name__ == '__main__':
                               model_dir=MODEL_DIR)
 
 
+    #model_path = \
+    #"./logs/seperate/skirt_trousers/clothes20180320T1222/mask_rcnn_clothes_0009.h5"
     model_path = \
-    "./logs/seperate/blouse_dress_outwear/clothes20180320T1211/mask_rcnn_clothes_0001.h5"
+    "./logs/seperate/blouse_dress_outwear/clothes20180320T1211/mask_rcnn_clothes_0013.h5"
     assert model_path != "", "Provide path to trained weights"
     print("Loading weights from ", model_path)
     model.load_weights(model_path, by_name=True)
     
     
     class_type = ["blouse","dress","outwear"]
+    #class_type = ["skirt","trousers"]
     dataset_val = prepare_dataset(0, 10000,"./test.csv","inference",\
             class_type=class_type)
 

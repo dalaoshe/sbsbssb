@@ -33,6 +33,7 @@ class ClothesConfig(Config):
     IMAGE_MIN_DIM = 512
     IMAGE_MAX_DIM = 512
     RPN_ANCHOR_SCALES = (16, 32, 64, 128, 256)
+    RPN_NMS_THRESHOLD = 0.5
     #RPN_ANCHOR_SCALES = (32, 64, 128, 256, 512)
 
     # Train Config
@@ -50,7 +51,7 @@ class ClothesConfig(Config):
     STEPS_PER_EPOCH = 1000
     VALIDATION_STEPS = 200
     
-    LEARNING_RATE = 0.02
+    LEARNING_RATE = 0.001
     LEARNING_MOMENTUM = 0.9
     WEIGHT_DECAY = 0.0001
     

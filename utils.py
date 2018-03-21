@@ -88,11 +88,21 @@ def extract_bboxes_by_kps(mask, img_shape, padding):
             # x2 and y2 should not be part of the box. Increment by 1.
             x2 += 1
             y2 += 1
+            #assert y2 - y1 > 10
+            #assert x2 - x1 > 10
         else:
             # No mask for this instance. Might happen due to
             # resizing or cropping. Set bbox to zeros
             x1, x2, y1, y2 = 0, 511, 0, 511
         #print(x1,y1,x2,y2,H,W)
+        if x2-x1 < 100:
+            x1 = max(x1-150,0)
+            x2 = min(x2+150,W-1)
+        if y2-y1 < 100:
+            y1 = max(y1-150,0)
+            y2 = min(y2+150,H-1)
+        assert y2 - y1 >= 100
+        assert x2 - x1 >= 100
         box = np.array([
             max(y1-padding,0), max(x1-padding,0), 
             min(y2+padding,H-1), min(x2+padding,W-1)
