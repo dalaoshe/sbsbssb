@@ -43,14 +43,16 @@ if __name__ == '__main__':
 
 
     model_path = \
-    "./logs/seperate/blouse_dress_outwear/clothes20180320T1211/mask_rcnn_clothes_0013.h5"
+    "./logs/seperate/skirt_trousers/clothes20180320T1222/mask_rcnn_clothes_0011.h5"
+    #model_path = \
+    #"./logs/seperate/blouse_dress_outwear/clothes20180320T1211/mask_rcnn_clothes_0013.h5"
     assert model_path != "", "Provide path to trained weights"
     print("Loading weights from ", model_path)
     model.load_weights(model_path, by_name=True)
     
     
-    class_type = ["blouse","dress","outwear"]
-    #class_type = ["skirt","trousers"]
+    #class_type = ["blouse","dress","outwear"]
+    class_type = ["skirt","trousers"]
     dataset_val = prepare_dataset(0, 10000,"./test.csv","inference",\
             class_type=class_type)
     

@@ -28,7 +28,7 @@ if __name__ == '__main__':
 
     print("Inference And Visual")
 
-    os.environ["CUDA_VISIBLE_DEVICES"] = "2" 
+    os.environ["CUDA_VISIBLE_DEVICES"] = "3" 
     # Root directory of the project
     ROOT_DIR = os.getcwd()
     # Directory to save logs and trained model
@@ -42,17 +42,17 @@ if __name__ == '__main__':
                               model_dir=MODEL_DIR)
 
 
-    #model_path = \
-    #"./logs/seperate/skirt_trousers/clothes20180320T1222/mask_rcnn_clothes_0009.h5"
     model_path = \
-    "./logs/seperate/blouse_dress_outwear/clothes20180320T1211/mask_rcnn_clothes_0013.h5"
+    "./logs/seperate/skirt_trousers/clothes20180322T1414/mask_rcnn_clothes_0009.h5"
+    #model_path = \
+    #"./logs/seperate/blouse_dress_outwear/clothes20180322T1417/mask_rcnn_clothes_0006.h5"
     assert model_path != "", "Provide path to trained weights"
     print("Loading weights from ", model_path)
     model.load_weights(model_path, by_name=True)
     
     
-    class_type = ["blouse","dress","outwear"]
-    #class_type = ["skirt","trousers"]
+    #class_type = ["blouse","dress","outwear"]
+    class_type = ["skirt","trousers"]
     dataset_val = prepare_dataset(0, 10000,"./test.csv","inference",\
             class_type=class_type)
 
@@ -76,8 +76,12 @@ if __name__ == '__main__':
         results = model.detect([original_image], verbose=1)
         r = results[0]
 
+        if not np.any(r['kpmasks']):
+            print("Img Error:",image_id, " Name:",image_type, image_name)
+            continue
         restore_kp_mask = []
         restore_bbox = []
+
         for j in range(1):
             mask,bbox = utils.change_to_original_size(image,
                     r['kpmasks'][j], r['rois'][j],
@@ -89,9 +93,6 @@ if __name__ == '__main__':
         restore_kp_mask = np.array(restore_kp_mask)
         restore_bbox = np.array(restore_bbox)
         
-        if not np.any(r['kpmasks']):
-            print("Img Error:",image_id, " Name:",image_type, image_name)
-            continue
         visualize.display_kp(image, restore_bbox, restore_kp_mask, 
                                 r['kp_class_ids'][:1], 
                                 dataset_val.kp_enames, 

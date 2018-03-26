@@ -40,13 +40,8 @@ def extract_bboxes(mask):
         horizontal_indicies = np.where(np.any(m, axis=0))[0]
         vertical_indicies = np.where(np.any(m, axis=1))[0]
         if horizontal_indicies.shape[0]:
-            x1 = np.min(horizontal_indicies)
-            x2 = np.max(horizontal_indicies)
-
-            y1 = np.min(vertical_indicies)
-            y2 = np.max(vertical_indicies)
-            #x1, x2 = horizontal_indicies[[0, -1]]
-            #y1, y2 = vertical_indicies[[0, -1]]
+            x1, x2 = horizontal_indicies[[0, -1]]
+            y1, y2 = vertical_indicies[[0, -1]]
             # x2 and y2 should not be part of the box. Increment by 1.
             x2 += 1
             y2 += 1
@@ -55,62 +50,6 @@ def extract_bboxes(mask):
             # resizing or cropping. Set bbox to zeros
             x1, x2, y1, y2 = 0, 0, 0, 0
         boxes[i] = np.array([y1, x1, y2, x2])
-    return boxes.astype(np.int32)
-
-def extract_bboxes_by_kps(mask, img_shape, padding):
-    """Compute bounding boxes from masks.
-
-    mask: [num_kps, height, width, num_instance]. Mask pixels are either 1 or 0.
-    shape: [H,W,C]
-    padding: int
-    Returns: bbox array [num_instances, (y1, x1, y2, x2)].
-    """
-    H,W = img_shape[:2]
-    boxes = np.zeros([mask.shape[-1],4], dtype=np.int32)
-    all_kps_mask = np.zeros([mask.shape[1], mask.shape[2]], dtype=np.int32)
-    for j in range(mask.shape[-1]):
-        all_kps_mask = np.zeros([mask.shape[1], mask.shape[2]], dtype=np.int32)
-        for i in range(mask.shape[0]):
-            mask_i = mask[i,:,:,j:j+1]
-            indices = np.where(mask_i == 1)
-            all_kps_mask[indices[:2]] = 1
-        m = all_kps_mask
-        # Bounding box.
-        horizontal_indicies = np.where(np.any(m, axis=0))[0]
-        vertical_indicies = np.where(np.any(m, axis=1))[0]
-        if horizontal_indicies.shape[0]:
-            #x1, x2 = horizontal_indicies[[0, -1]]
-            #y1, y2 = vertical_indicies[[0, -1]]
-            x1 = np.min(horizontal_indicies)
-            x2 = np.max(horizontal_indicies)
-
-            y1 = np.min(vertical_indicies)
-            y2 = np.max(vertical_indicies)
-            # x2 and y2 should not be part of the box. Increment by 1.
-            x2 += 1
-            y2 += 1
-            #assert y2 - y1 > 10
-            #assert x2 - x1 > 10
-        else:
-            # No mask for this instance. Might happen due to
-            # resizing or cropping. Set bbox to zeros
-            x1, x2, y1, y2 = 0, 511, 0, 511
-        #print(x1,y1,x2,y2,H,W)
-        if x2-x1 < 150:
-            mid = (x1+x2)/2
-            x1 = max(mid-100,0)
-            x2 = min(mid+100,W-1)
-        if y2-y1 < 200:
-            mid = (y1+y2)/2
-            y1 = max(mid-150,0)
-            y2 = min(mid+150,H-1)
-        assert y2 - y1 >= 100
-        assert x2 - x1 >= 100
-        box = np.array([
-            max(y1-padding,0), max(x1-padding,0), 
-            min(y2+padding,H-1), min(x2+padding,W-1)
-            ])
-        boxes[j] = box
     return boxes.astype(np.int32)
 
 
@@ -507,51 +446,6 @@ def resize_mask(mask, scale, padding):
     mask = np.pad(mask, padding, mode='constant', constant_values=0)
     return mask
 
-def resize_kp_mask(mask, size, scale, padding):
-    """Resizes a kp_mask using the given scale and padding.
-    
-    mask:[kp_maks_H, kp_mask_W, num_kps]
-    size: [image_H, image_W, num_kps]
-    scale: kp_mask scaling factor
-    padding: Padding to add to the kp_mask in the form
-            [(top, bottom), (left, right), (0, 0)]
-    """
-    kp_mask = np.zeros(size)
-    for i in range(size[2]):
-        cord = np.asarray(np.where(mask[:,:,i] == 1))
-        if cord.shape[1] > 0:
-            cord = cord.reshape(2,)
-            new_cord = np.floor(cord*scale)
-            new_cord[0] = int(new_cord[0] + padding[0][0])
-            new_cord[1] = int(new_cord[1] + padding[1][0])
-            new_cord = np.array(new_cord, dtype=np.int32)
-            kp_mask[min(new_cord[0],size[0]-1), 
-                    min(new_cord[1], size[1]-1), \
-                    i] = 1
-    return kp_mask
-
-
-def expand_kp_mask(mask, padding):
-    """Resizes a mask using the given scale and padding.
-    Typically, you get the scale and padding from resize_image() to
-    ensure both, the image and the mask, are resized consistently.
-
-    mask:[H,W]
-    padding: int
-    """
-    H,W = mask.shape
-    kp_mask_cord = np.where(mask == 1)
-    cords = len(kp_mask_cord[0])
-    for i in range(cords):
-        x = kp_mask_cord[0][i]
-        y = kp_mask_cord[1][i]
-        for j in range(x-padding, x+padding,1):
-            if j >= 0 and j < H:
-                for k in range(y-padding, y+padding,1):
-                    if k >= 0 and k < W:
-                        mask[j][k] = 1
-    return mask
-
 
 def minimize_mask(bbox, mask, mini_shape):
     """Resize masks to a smaller version to cut memory load.
@@ -568,32 +462,6 @@ def minimize_mask(bbox, mask, mini_shape):
             raise Exception("Invalid bounding box with area of zero")
         m = scipy.misc.imresize(m.astype(float), mini_shape, interp='bilinear')
         mini_mask[:, :, i] = np.where(m >= 128, 1, 0)
-    return mini_mask
-
-def minimize_kp_mask(bbox, mask, mini_shape):
-    """Resize masks to a smaller version to cut memory load.
-    bbox: [num_instacne,(y1,x1,y2,x2)]
-    mask: [H,W,num_kps]
-    mini_shape: [mini_H, mini_W]
-
-    return: resize [mini_H, mini_W, num_kps] 
-    """
-    mini_mask = np.zeros(mini_shape + (mask.shape[-1],), dtype=bool)
-    for i in range(mask.shape[-1]):
-        m = mask[:, :, i]
-        y1, x1, y2, x2 = bbox[:4]
-        m = m[y1:y2, x1:x2]
-        if m.size == 0:
-            print("error box", bbox[:4])
-            raise Exception("Invalid bounding box with area of zero")
-        if m.sum() > 0:
-            scale = np.asarray(mini_shape)/m.shape
-            cord = np.array(np.where(m == m.max()))
-            new_cord = np.array([scale[0]*cord[0],scale[1]*cord[1]], dtype=np.int32).reshape(2,)
-            mini_mask[new_cord[0], new_cord[1], i] = 1
-        else:
-            m = scipy.misc.imresize(m.astype(float),mini_shape,interp='bilinear')
-            mini_mask[:,:,i] = m
     return mini_mask
 
 
@@ -638,51 +506,6 @@ def unmold_mask(mask, bbox, image_shape):
     full_mask[y1:y2, x1:x2] = mask
     return full_mask
 
-def unmold_kp_mask(mask, bbox, image_shape):
-    """Converts a mask generated by the neural network into a format similar
-    to it's original shape.
-    mask: [num_kp, height, width] of type float. A small, typically 28x28 mask.
-    bbox: [y1, x1, y2, x2]. The box to fit the mask in.
-
-    Returns a binary mask with the same size as the original image.
-    """
-    threshold = 0.95
-    y1, x1, y2, x2 = bbox
-    
-    full_mask = np.zeros([mask.shape[0],image_shape[0],image_shape[1]], dtype=np.uint8)
-    
-    for i in range(mask.shape[0]):
-        _mask = mask[i,:,:]
-        C = -np.max(_mask)
-        _mask = np.exp(_mask + C)
-        _mask = _mask / np.sum(_mask)
-
-        tmp_mask = scipy.misc.imresize(
-                _mask, (y2 - y1, x2 - x1), 
-                interp='bilinear').astype(np.float32) / 255.0
-        #tmp_mask = tmp_mask / np.sum(tmp_mask)
-
-        #tmp_mask = np.exp(tmp_mask + C)
-        #tmp_mask = tmp_mask / np.sum(tmp_mask)
-        mask_max = np.max(tmp_mask)
-
-        #print("kp_i:",i, " max:", mask_max)
-        #print(np.where(tmp_mask==mask_max))
-        ix = np.where(tmp_mask > threshold)
-
-        tmp_mask = np.where(tmp_mask > threshold, 0, 0).astype(np.uint8)
-        if len(ix[0]) > 0:
-         #   print("before:", ix)
-            ix = np.mean(ix, axis=1)
-            ix = np.array(ix, dtype=np.int32)
-         #   print("after:", ix)
-            tmp_mask[ix[0]][ix[1]] = 1 
-        #print(np.sum(tmp_mask))
-        full_mask[i,y1:y2, x1:x2] = tmp_mask
-        #print(np.where(full_mask[i]==1))
-
-    # Put the mask in the right location.
-    return full_mask
 
 ############################################################
 #  Anchors
@@ -904,123 +727,3 @@ def download_trained_weights(coco_model_path, verbose=1):
         shutil.copyfileobj(resp, out)
     if verbose > 0:
         print("... done downloading pretrained model!")
-
-def pack_detect_kp_result(kp_masks, kp_class_ids, kp_class_names):
-    """
-    kp_masks: [num_instance, H,W, num_kps]
-    kp_class_ids: [num_instance, num_kps, 3/1]
-    kp_class_names: [num_kps]
-    """
-    results = []
-    if np.any(kp_masks):
-        kp_mask = np.transpose(kp_masks[0],[2,0,1])
-        kp_class_id = kp_class_ids[0]
-        for i in range(kp_mask.shape[0]):
-            ix = np.where(kp_mask[i] == 1) 
-            if len(kp_class_id.shape) > 1:
-                kp_t = np.argmax(kp_class_id[i])
-                if kp_t != 0: kp_t = 1
-                else : kp_t = 1
-            else:
-                print(i," ",kp_class_id[i], " ",ix)
-                kp_t = kp_class_id[i]-1
-            if (len(ix[0]) <= 0) or kp_t == -1:
-                results.append("-1_-1_-1")
-            else:
-                results.append(str(ix[1][0])+"_"+str(ix[0][0])+"_"+str(int(kp_t)))
-
-    results = ",".join(results)
-    #print((",").join(kp_class_names))
-    #print(results)
-    return results, ",".join(kp_class_names)
-
-
-
-import model as modellib
-def detect_all_image_and_pack(model, dataset, config, detect=False):
-    imgs = len(dataset.image_info)
-    res = []
-    total = imgs
-    for i in range(imgs):
-        
-        if detect:
-            image = dataset.load_image(i)
-            original_image, window, scale, padding = resize_image(
-                image,
-                min_dim=config.IMAGE_MIN_DIM,
-                max_dim=config.IMAGE_MAX_DIM,
-                padding=config.IMAGE_PADDING)
-
-            r = model.detect([original_image], verbose=1)[0]
-            kp_mask = r['kpmasks']
-            kp_class_ids = r['kp_class_ids']
-            img_name = dataset.get_image_name(i)
-            img_type = dataset.get_image_type(i)
-
-        if np.any(kp_mask) :
-            restore_kp_mask = []
-            for j in range(1):
-                mask,_ = change_to_original_size(image,
-                        r['kpmasks'][j], r['rois'][j],
-                        config.IMAGE_MIN_DIM,
-                        config.IMAGE_MAX_DIM,
-                        config.IMAGE_PADDING)
-                restore_kp_mask.append(mask)
-            restore_kp_mask = np.array(restore_kp_mask)
-
-            results, kp_names = pack_detect_kp_result(restore_kp_mask, \
-                kp_class_ids,\
-                dataset.kp_enames)
-
-            results = img_name + "," + img_type + "," + results
-            res.append(results)
-        else:
-            results = []
-            for j in range(24):
-                results.append("-1_-1_-1")
-            results = ",".join(results)
-            results = img_name + "," + img_type + "," + results
-            print("Error Img:", img_name, " \nError Result:",results)
-            res.append(results)
-
-
-        if i % 100 == 0 :
-            print("=======FINISH:",float(i)/float(total)," ==========")
-    captions = "image_id,image_category," + kp_names
-    return "\n".join(res), captions
-    
-
-def change_to_original_size(original_image, kp_mask, bbox, min_dim, max_dim, padding):
-    image, window, scale, padding = resize_image(
-        original_image,
-        min_dim=min_dim,
-        max_dim=max_dim,
-        padding=padding)
-    original_size = \
-        [original_image.shape[0],original_image.shape[1],kp_mask.shape[-1]]
-
-    tmp_kp_mask = np.zeros(original_size)
-
-    for i in range(original_size[2]):
-        cord = np.asarray(np.where(kp_mask[:,:,i] == 1))
-        if cord.shape[1] > 0:
-            new_cord = cord.reshape(2,)
-            new_cord[0] = int(new_cord[0] - padding[0][0])
-            new_cord[1] = int(new_cord[1] - padding[1][0])
-            new_cord = np.floor(new_cord/scale)
-            new_cord = np.array(new_cord, dtype=np.int32)
-            tmp_kp_mask[min(new_cord[0],original_size[0]-1), 
-                    min(new_cord[1], original_size[1]-1), \
-                    i] = 1
-
-    bbox[list([0, 2])] = bbox[list([0, 2])] - padding[0][0]
-    bbox[list([1, 3])] = bbox[list([1, 3])] - padding[1][0]
-    bbox = np.asarray(bbox) / scale
-
-    return tmp_kp_mask, bbox
-
-
-
-
-
-

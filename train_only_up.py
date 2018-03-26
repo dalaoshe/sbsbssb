@@ -11,8 +11,8 @@ class SeperateConfig(ClothesConfig):
     IMAGES_PER_GPU = 4
     STEPS_PER_EPOCH = 4000
     VALIDATION_STEPS = 500
-    LEARNING_RATE = 0.0001
-    LEARNING_MOMENTUM = 0.5
+    LEARNING_RATE = 0.002
+    LEARNING_MOMENTUM = 0.9
 
 
 
@@ -33,10 +33,10 @@ if __name__ == "__main__":
     if not os.path.exists(MODEL_DIR):
         os.mkdir(MODEL_DIR)
     # Local path to trained weights file
-    #COCO_MODEL_PATH = \
-    #os.path.join(ROOT_DIR,"mask_rcnn_coco.h5")
     COCO_MODEL_PATH = \
-    os.path.join(ROOT_DIR,"logs/seperate/blouse_dress_outwear/clothes20180320T1211/mask_rcnn_clothes_0005.h5")
+    os.path.join(ROOT_DIR,"mask_rcnn_coco.h5")
+    #COCO_MODEL_PATH = \
+    #os.path.join(ROOT_DIR,"logs/seperate/blouse_dress_outwear/clothes20180320T1211/mask_rcnn_clothes_0015.h5")
     # Download COCO trained weights from Releases if needed
     if not os.path.exists(COCO_MODEL_PATH):
         utils.download_trained_weights(COCO_MODEL_PATH)
@@ -54,7 +54,7 @@ if __name__ == "__main__":
     model = modellib.MaskRCNN(mode="training", config=config,
                               model_dir=MODEL_DIR)
     
-    init_with = False
+    init_with = True
     if init_with == True:
         model.load_weights(COCO_MODEL_PATH, by_name=True,\
                     exclude=["mrcnn_class_logits", "mrcnn_bbox_fc", 
@@ -67,6 +67,15 @@ if __name__ == "__main__":
                 learning_rate=config.LEARNING_RATE , 
                 epochs=400, 
                 layers='heads')
+    model.train(dataset_train, dataset_val, 
+                learning_rate=config.LEARNING_RATE , 
+                epochs=2, 
+                layers='heads_mrcnn_only_kp')
+
+    model.train(dataset_train, dataset_val, 
+                learning_rate=config.LEARNING_RATE , 
+                epochs=400, 
+                layers='heads_mrcnn')
     
     model.train(dataset_train, dataset_val, 
                 learning_rate=config.LEARNING_RATE / 10.0,

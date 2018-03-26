@@ -32,9 +32,9 @@ class ClothesConfig(Config):
     # Model Config
     IMAGE_MIN_DIM = 512
     IMAGE_MAX_DIM = 512
-    RPN_ANCHOR_SCALES = (16, 32, 64, 128, 256)
+    #RPN_ANCHOR_SCALES = (16, 32, 64, 128, 256)
     RPN_NMS_THRESHOLD = 0.5
-    #RPN_ANCHOR_SCALES = (32, 64, 128, 256, 512)
+    RPN_ANCHOR_SCALES = (32, 64, 128, 256, 512)
 
     # Train Config
     USE_MINI_MASK = True
@@ -42,7 +42,7 @@ class ClothesConfig(Config):
     KP_MASK_POOL_SIZE = 28
     KP_MASK_SHAPE = [56, 56]
 
-    MAX_GT_INSTANCES = 12
+    MAX_GT_INSTANCES = 1
     TRAIN_ROIS_PER_IMAGE = 24
     
 
