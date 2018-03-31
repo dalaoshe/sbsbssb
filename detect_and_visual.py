@@ -42,18 +42,20 @@ if __name__ == '__main__':
                               model_dir=MODEL_DIR)
 
 
-    model_path = \
-    "./logs/seperate/skirt_trousers/clothes20180322T1414/mask_rcnn_clothes_0009.h5"
     #model_path = \
-    #"./logs/seperate/blouse_dress_outwear/clothes20180322T1417/mask_rcnn_clothes_0006.h5"
+    #"./logs/seperate/skirt_trousers/clothes20180327T1039/mask_rcnn_clothes_0036.h5"
+    model_path = \
+    "./logs/seperate/blouse_dress_outwear/clothes20180326T1329/mask_rcnn_clothes_0043.h5"
     assert model_path != "", "Provide path to trained weights"
     print("Loading weights from ", model_path)
     model.load_weights(model_path, by_name=True)
     
     
-    #class_type = ["blouse","dress","outwear"]
-    class_type = ["skirt","trousers"]
-    dataset_val = prepare_dataset(0, 10000,"./test.csv","inference",\
+    class_type = ["blouse","dress","outwear"]
+    #class_type = ["skirt","trousers"]
+    #dataset_val = prepare_dataset(0, 10000,"./test.csv","inference",\
+    #        class_type=class_type)
+    dataset_val = prepare_dataset(0, 10000,"./train.csv",\
             class_type=class_type)
 
 
@@ -97,7 +99,8 @@ if __name__ == '__main__':
                                 r['kp_class_ids'][:1], 
                                 dataset_val.kp_enames, 
                                 r['kp_class_ids'][:1],
-                                r['scores'])
+                                r['scores'],
+                                mode=2)
 
 
 

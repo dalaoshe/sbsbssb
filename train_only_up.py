@@ -24,7 +24,7 @@ if __name__ == "__main__":
     dataset_train = prepare_dataset(0, 16000, class_type=class_type)
     dataset_val = prepare_dataset(16001, 31640, class_type=class_type)
 
-    os.environ["CUDA_VISIBLE_DEVICES"] = "3" 
+    os.environ["CUDA_VISIBLE_DEVICES"] = "0" 
 
     ROOT_DIR = os.getcwd()
     # Directory to save logs and trained model
@@ -36,7 +36,7 @@ if __name__ == "__main__":
     COCO_MODEL_PATH = \
     os.path.join(ROOT_DIR,"mask_rcnn_coco.h5")
     #COCO_MODEL_PATH = \
-    #os.path.join(ROOT_DIR,"logs/seperate/blouse_dress_outwear/clothes20180320T1211/mask_rcnn_clothes_0015.h5")
+    #os.path.join(ROOT_DIR,"logs/seperate/blouse_dress_outwear/clothes20180326T1329/mask_rcnn_clothes_0001.h5")
     # Download COCO trained weights from Releases if needed
     if not os.path.exists(COCO_MODEL_PATH):
         utils.download_trained_weights(COCO_MODEL_PATH)
@@ -66,7 +66,7 @@ if __name__ == "__main__":
     model.train(dataset_train, dataset_val, 
                 learning_rate=config.LEARNING_RATE , 
                 epochs=400, 
-                layers='heads')
+                layers='heads_mrcnn')
     model.train(dataset_train, dataset_val, 
                 learning_rate=config.LEARNING_RATE , 
                 epochs=2, 

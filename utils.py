@@ -666,8 +666,8 @@ def unmold_kp_mask(mask, bbox, image_shape):
         #tmp_mask = tmp_mask / np.sum(tmp_mask)
         mask_max = np.max(tmp_mask)
 
-        #print("kp_i:",i, " max:", mask_max)
-        #print(np.where(tmp_mask==mask_max))
+        print("kp_i:",i, " max:", mask_max)
+        print(np.where(tmp_mask==mask_max))
         ix = np.where(tmp_mask > threshold)
 
         tmp_mask = np.where(tmp_mask > threshold, 0, 0).astype(np.uint8)

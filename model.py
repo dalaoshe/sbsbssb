@@ -1112,24 +1112,13 @@ def build_fpn_kp_mask_graph(rois, feature_maps,
 
     print("8 Layers Out x:",x)
     # Shape: [batch, boxes, pool_height, pool_width, channels]
-    #x = PyramidROIAlign([pool_size, pool_size], image_shape,
-    #                    name="roi_align_kp_mask")([rois] + x)
-    x = KL.TimeDistributed(KL.Conv2DTranspose(256, (2, 2), strides=2),
-                           name="mrcnn_kp_mask_deconv")(x)
-    #x = KL.TimeDistributed(BatchNorm(axis=3),
-    #                       name='mrcnn_kp_mask_bn9')(x)
-    #x = KL.Activation('sigmoid')(x)
-    #x = KL.TimeDistributed(KL.Conv2D(num_kps, (1, 1), strides=1), name="mrcnn_kp_mask_conv9")(x)
-    #    activation="relu"),
+    x = KL.TimeDistributed(KL.Conv2DTranspose(256, (2, 2), strides=2,
+        activation="relu"),name="mrcnn_kp_mask_deconv")(x)
 
 
     print("Decov Layers Out x:",x)
-    #KL.UpSampling2D(size=(2, 2), name="fpn_p3upsampled")(P3),
     x = KL.TimeDistributed(KL.Conv2D(num_kps, (1, 1), strides=1, activation="sigmoid"),
                            name="mrcnn_kp_mask_sigmoid")(x)
-    #x = KL.TimeDistributed(KL.Conv2D(num_kps, (1, 1), strides=1,
-    #    activation="relu"),
-    #                       name="mrcnn_kp_mask_relu")(x)
 
     return x
 ############################################################
@@ -1406,7 +1395,7 @@ def mrcnn_kp_mask_loss_graph(target_kp_masks, target_class_ids, pred_kp_masks,
     #loss = K.switch(tf.size(loss)>0,
     #                K.mean(loss),
     #                tf.constant(0.0))
-    loss = tf.reduce_mean(loss)
+    #loss = tf.reduce_mean(loss)
     return loss
 
 
@@ -2397,7 +2386,7 @@ class MaskRCNN():
         # Exclude some layers
         if exclude:
             layers = filter(lambda l: l.name not in exclude, layers)
-
+            print(layers)
         if by_name:
             topology.load_weights_from_hdf5_group_by_name(f, layers)
         else:
@@ -2427,10 +2416,7 @@ class MaskRCNN():
         metrics. Then calls the Keras compile() function.
         """
         # Optimizer object
-        optimizer = keras.optimizers.SGD(lr=learning_rate, momentum=momentum,
-                           #             decay=self.config.WEIGHT_DECAY,
-                                       #epsilon=1e-06,
-                                         clipvalue=5.0)
+        optimizer = keras.optimizers.SGD(lr=learning_rate, momentum=momentum, clipnorm=5.0)
         #optimizer = keras.optimizers.Adagrad(lr=learning_rate,
         #        decay=self.config.WEIGHT_DECAY,
         #        clipvalue=2.0,

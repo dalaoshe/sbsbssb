@@ -23,7 +23,7 @@ if __name__ == "__main__":
     dataset_train = prepare_dataset(0, 12000, class_type=class_type)
     dataset_val = prepare_dataset(12001, 31640, class_type=class_type)
 
-    os.environ["CUDA_VISIBLE_DEVICES"] = "0" 
+    os.environ["CUDA_VISIBLE_DEVICES"] = "2" 
 
     ROOT_DIR = os.getcwd()
     # Directory to save logs and trained model
@@ -70,7 +70,7 @@ if __name__ == "__main__":
     model.train(dataset_train, dataset_val, 
                 learning_rate=config.LEARNING_RATE , 
                 epochs=400, 
-                layers='heads')
+                layers='heads_mrcnn')
     
     model.train(dataset_train, dataset_val, 
                 learning_rate=config.LEARNING_RATE / 10.0,
